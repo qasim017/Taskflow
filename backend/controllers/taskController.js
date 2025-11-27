@@ -1,10 +1,19 @@
 const Task = require("../models/Task");
 const mongoose = require("mongoose");
 
-// Get all tasks for a user
+// Get all tasks for a user (with status filter)
 const getTasks = async (req, res) => {
   const userId = req.user._id;
-  const tasks = await Task.find({ userId }).sort({ createdAt: -1 });
+  const { status } = req.query;
+
+  const filter = { userId };
+
+  // Add status filter if provided
+  if (status && status !== "All") {
+    filter.status = status;
+  }
+
+  const tasks = await Task.find(filter).sort({ createdAt: -1 });
   res.status(200).json(tasks);
 };
 
@@ -14,7 +23,12 @@ const createTask = async (req, res) => {
   const userId = req.user._id;
 
   try {
-    const task = await Task.create({ title, description, dueDate, userId });
+    const task = await Task.create({
+      title,
+      description,
+      dueDate,
+      userId,   
+    });
     res.status(201).json(task);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -30,12 +44,9 @@ const updateTask = async (req, res) => {
     return res.status(404).json({ error: "No such task" });
   }
 
-  // Validate status if it exists
-  if (updates.status) {
-    const allowedStatus = ["Pending", "In Progress", "Completed"];
-    if (!allowedStatus.includes(updates.status)) {
-      return res.status(400).json({ error: "Invalid status" });
-    }
+  const allowedStatus = ["Pending", "In Progress", "Completed"];
+  if (updates.status && !allowedStatus.includes(updates.status)) {
+    return res.status(400).json({ error: "Invalid status" });
   }
 
   const task = await Task.findByIdAndUpdate(id, updates, { new: true });
@@ -69,3 +80,4 @@ module.exports = {
   updateTask,
   deleteTask,
 };
+

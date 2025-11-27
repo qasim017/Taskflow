@@ -8,14 +8,16 @@ export default function Home({ setToken }) {
   const [dueDate, setDueDate] = useState("");
   const [error, setError] = useState("");
   const [editingTask, setEditingTask] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const token = localStorage.getItem("token");
 
-  // Fetch tasks
+  // Fetch tasks with status filter
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const res = await axios.get("/api/tasks", {
+        const query = statusFilter ? `?status=${statusFilter}` : "";
+        const res = await axios.get(`/api/tasks${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setTasks(res.data);
@@ -24,7 +26,7 @@ export default function Home({ setToken }) {
       }
     };
     if (token) fetchTasks();
-  }, [token]);
+  }, [token, statusFilter]);
 
   // Create or Update task
   const handleSubmit = async (e) => {
@@ -32,7 +34,6 @@ export default function Home({ setToken }) {
     try {
       let res;
       if (editingTask) {
-        // Update task
         res = await axios.patch(
           `/api/tasks/${editingTask._id}`,
           { title, description, dueDate },
@@ -41,7 +42,6 @@ export default function Home({ setToken }) {
         setTasks(tasks.map((t) => (t._id === res.data._id ? res.data : t)));
         setEditingTask(null);
       } else {
-        // Create task
         res = await axios.post(
           "/api/tasks",
           { title, description, dueDate },
@@ -81,10 +81,12 @@ export default function Home({ setToken }) {
 
   // Toggle status
   const toggleStatus = async (task) => {
-    let newStatus;
-    if (task.status === "Pending") newStatus = "In Progress";
-    else if (task.status === "In Progress") newStatus = "Completed";
-    else newStatus = "Pending";
+    let newStatus =
+      task.status === "Pending"
+        ? "In Progress"
+        : task.status === "In Progress"
+        ? "Completed"
+        : "Pending";
 
     try {
       const res = await axios.patch(
@@ -118,6 +120,34 @@ export default function Home({ setToken }) {
           </button>
         </div>
 
+        {/* Status Filter Buttons */}
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={() => setStatusFilter("All")}
+            className="bg-gray-700 text-white px-3 py-1 rounded"
+          >
+            All
+          </button>
+          <button
+            onClick={() => setStatusFilter("Pending")}
+            className="bg-yellow-600 text-white px-3 py-1 rounded"
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => setStatusFilter("In Progress")}
+            className="bg-blue-600 text-white px-3 py-1 rounded"
+          >
+            In Progress
+          </button>
+          <button
+            onClick={() => setStatusFilter("Completed")}
+            className="bg-green-600 text-white px-3 py-1 rounded"
+          >
+            Completed
+          </button>
+        </div>
+
         {/* Task Form */}
         <div className="bg-gray-200 p-6 rounded shadow-md mb-6">
           <h2 className="text-xl font-bold mb-4">
@@ -148,7 +178,7 @@ export default function Home({ setToken }) {
             />
             <button
               type="submit"
-              className={`w-full bg-gray-500 hover:bg-gray-800 text-white py-2 rounded transition`}
+              className="w-full bg-gray-500 hover:bg-gray-800 text-white py-2 rounded transition"
             >
               {editingTask ? "Update Task" : "Add Task"}
             </button>
@@ -190,6 +220,7 @@ export default function Home({ setToken }) {
                   Toggle Status
                 </button>
               </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(task)}
