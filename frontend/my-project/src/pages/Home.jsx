@@ -9,6 +9,7 @@ export default function Home({ setToken }) {
   const [error, setError] = useState("");
   const [editingTask, setEditingTask] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState(""); 
 
   const token = localStorage.getItem("token");
 
@@ -107,11 +108,16 @@ export default function Home({ setToken }) {
     setToken(null);
   };
 
+  // SEARCH FILTER
+  const filteredTasks = tasks.filter((task) =>
+    task.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-500 p-6">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-amber-50">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-amber-50">TASKFLOW</h1>
           <button
             onClick={handleLogout}
             className="bg-red-900 text-white px-4 py-2 rounded hover:bg-red-600 transition"
@@ -185,10 +191,20 @@ export default function Home({ setToken }) {
           </form>
         </div>
 
+        {/* Search Input */}
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full p-2 mb-4 border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
+        />
+
         {/* Task List */}
         <div className="space-y-4">
-          {tasks.length === 0 && <p>No tasks found.</p>}
-          {tasks.map((task) => (
+          {filteredTasks.length === 0 && <p>No tasks found.</p>}
+
+          {filteredTasks.map((task) => (
             <div
               key={task._id}
               className="bg-gray-200 p-4 rounded shadow flex justify-between items-center"
