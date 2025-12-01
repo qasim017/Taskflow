@@ -20,6 +20,11 @@ const taskSchema = new Schema(
       enum: ["Pending", "In Progress", "Completed"],
       default: "Pending",
     },
+    category: {
+      type: String,
+      enum: ["Work", "Personal", "Health"], // predefined categories
+      default: "Personal",
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -2,22 +2,25 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 export default function Home({ setToken }) {
+  // STATES
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [category, setCategory] = useState("Personal");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [editingTask, setEditingTask] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [searchQuery, setSearchQuery] = useState(""); 
 
   const token = localStorage.getItem("token");
 
-  // Fetch tasks with status filter
+  // FETCH TASKS
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const query = statusFilter ? `?status=${statusFilter}` : "";
+        const query = statusFilter && statusFilter !== "All" ? `?status=${statusFilter}` : "";
         const res = await axios.get(`/api/tasks${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -29,7 +32,7 @@ export default function Home({ setToken }) {
     if (token) fetchTasks();
   }, [token, statusFilter]);
 
-  // Create or Update task
+  // CREATE / UPDATE TASK
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -37,7 +40,7 @@ export default function Home({ setToken }) {
       if (editingTask) {
         res = await axios.patch(
           `/api/tasks/${editingTask._id}`,
-          { title, description, dueDate },
+          { title, description, dueDate, category },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setTasks(tasks.map((t) => (t._id === res.data._id ? res.data : t)));
@@ -45,7 +48,7 @@ export default function Home({ setToken }) {
       } else {
         res = await axios.post(
           "/api/tasks",
-          { title, description, dueDate },
+          { title, description, dueDate, category },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setTasks([res.data, ...tasks]);
@@ -54,13 +57,14 @@ export default function Home({ setToken }) {
       setTitle("");
       setDescription("");
       setDueDate("");
+      setCategory("Personal");
       setError("");
     } catch (err) {
       setError(err.response?.data.error || "Failed to save task");
     }
   };
 
-  // Delete task
+  // DELETE TASK
   const handleDelete = async (id) => {
     try {
       await axios.delete(`/api/tasks/${id}`, {
@@ -72,15 +76,16 @@ export default function Home({ setToken }) {
     }
   };
 
-  // Edit task
+  // EDIT TASK
   const handleEdit = (task) => {
     setEditingTask(task);
     setTitle(task.title);
     setDescription(task.description);
     setDueDate(task.dueDate.slice(0, 10));
+    setCategory(task.category);
   };
 
-  // Toggle status
+  // TOGGLE STATUS
   const toggleStatus = async (task) => {
     let newStatus =
       task.status === "Pending"
@@ -88,7 +93,6 @@ export default function Home({ setToken }) {
         : task.status === "In Progress"
         ? "Completed"
         : "Pending";
-
     try {
       const res = await axios.patch(
         `/api/tasks/${task._id}`,
@@ -102,20 +106,27 @@ export default function Home({ setToken }) {
     }
   };
 
-  // Logout
+  // LOGOUT
   const handleLogout = () => {
     localStorage.removeItem("token");
     setToken(null);
   };
 
-  // SEARCH FILTER
-  const filteredTasks = tasks.filter((task) =>
-    task.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // FILTERED TASKS
+  const filteredTasks = tasks
+    .filter(
+      (task) =>
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter((task) =>
+      categoryFilter === "All" ? true : task.category === categoryFilter
+    );
 
   return (
     <div className="min-h-screen bg-gray-500 p-6">
       <div className="max-w-3xl mx-auto">
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-amber-50">TASKFLOW</h1>
           <button
@@ -126,35 +137,41 @@ export default function Home({ setToken }) {
           </button>
         </div>
 
-        {/* Status Filter Buttons */}
+        {/* STATUS FILTER */}
         <div className="mb-4 flex gap-2">
-          <button
-            onClick={() => setStatusFilter("All")}
-            className="bg-gray-700 text-white px-3 py-1 rounded"
-          >
-            All
-          </button>
-          <button
-            onClick={() => setStatusFilter("Pending")}
-            className="bg-yellow-600 text-white px-3 py-1 rounded"
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setStatusFilter("In Progress")}
-            className="bg-blue-600 text-white px-3 py-1 rounded"
-          >
-            In Progress
-          </button>
-          <button
-            onClick={() => setStatusFilter("Completed")}
-            className="bg-green-600 text-white px-3 py-1 rounded"
-          >
-            Completed
-          </button>
+          {["All", "Pending", "In Progress", "Completed"].map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-3 py-1 rounded text-white ${
+                status === "All"
+                  ? "bg-gray-700"
+                  : status === "Pending"
+                  ? "bg-yellow-600"
+                  : status === "In Progress"
+                  ? "bg-blue-600"
+                  : "bg-green-600"
+              }`}
+            >
+              {status}
+            </button>
+          ))}
         </div>
 
-        {/* Task Form */}
+        {/* CATEGORY FILTER */}
+        <div className="mb-4 flex gap-2">
+          {["All", "Work", "Personal", "Health"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className="px-3 py-1 rounded bg-purple-800 text-white"
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* TASK FORM */}
         <div className="bg-gray-200 p-6 rounded shadow-md mb-6">
           <h2 className="text-xl font-bold mb-4">
             {editingTask ? "Edit Task" : "Add Task"}
@@ -182,6 +199,16 @@ export default function Home({ setToken }) {
               className="w-full p-2 border border-gray-300 rounded"
               required
             />
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded"
+            >
+              <option value="Work">Work</option>
+              <option value="Personal">Personal</option>
+              <option value="Health">Health</option>
+            </select>
+
             <button
               type="submit"
               className="w-full bg-gray-500 hover:bg-gray-800 text-white py-2 rounded transition"
@@ -191,7 +218,7 @@ export default function Home({ setToken }) {
           </form>
         </div>
 
-        {/* Search Input */}
+        {/* SEARCH INPUT */}
         <input
           type="text"
           placeholder="Search tasks..."
@@ -200,7 +227,7 @@ export default function Home({ setToken }) {
           className="w-full p-2 mb-4 border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
         />
 
-        {/* Task List */}
+        {/* TASK LIST */}
         <div className="space-y-4">
           {filteredTasks.length === 0 && <p>No tasks found.</p>}
 
@@ -229,12 +256,19 @@ export default function Home({ setToken }) {
                     {task.status}
                   </span>
                 </p>
-                <button
+                      <button
                   onClick={() => toggleStatus(task)}
                   className="mt-2 px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-900 transition"
                 >
                   Toggle Status
                 </button>
+                <p className="mt-1">
+                  Category:{" "}
+                  <span className="px-2 py-1 rounded bg-purple-800 text-white">
+                    {task.category}
+                  </span>
+                </p>
+          
               </div>
 
               <div className="flex gap-2">
