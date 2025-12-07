@@ -7,24 +7,30 @@ const taskSchema = new Schema(
       type: String,
       required: true,
     },
+
     description: {
       type: String,
       required: true,
     },
+
     dueDate: {
       type: Date,
       required: true,
     },
+
     status: {
       type: String,
       enum: ["Pending", "In Progress", "Completed"],
       default: "Pending",
     },
+
+    // MULTIPLE CATEGORIES NOW
     category: {
-      type: String,
-      enum: ["Work", "Personal", "Health"], // predefined categories
-      default: "Personal",
+      type: [String],           // <-- ARRAY of strings
+      enum: ["Work", "Personal", "Health"],
+      default: ["Personal"],    // <-- default must also be array
     },
+
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

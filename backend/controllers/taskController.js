@@ -22,21 +22,27 @@ const getTasks = async (req, res) => {
 ///////////////////////////////////////s
 // Create a new task
 const createTask = async (req, res) => {
-  const { title, description, dueDate } = req.body;
+  const { title, description, dueDate, category } = req.body;
   const userId = req.user._id;
 
   try {
+    // make sure category is ALWAYS an array
+    const categoryArray = Array.isArray(category) ? category : [category];
+
     const task = await Task.create({
       title,
       description,
       dueDate,
+      category: categoryArray,
       userId,
     });
+
     res.status(201).json(task);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
+
 ////////////////////////////////////////e
 
 ////////////////////////////////////////s

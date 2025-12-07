@@ -7,9 +7,13 @@ export default function Home({ setToken }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [category, setCategory] = useState("Personal");
+
+  // multiple categories (array)
+  const [category, setCategory] = useState([]);
+
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [editingTask, setEditingTask] = useState(null);
@@ -20,29 +24,37 @@ export default function Home({ setToken }) {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const query = statusFilter && statusFilter !== "All" ? `?status=${statusFilter}` : "";
+        const query =
+          statusFilter && statusFilter !== "All"
+            ? `?status=${statusFilter}`
+            : "";
+
         const res = await axios.get(`/api/tasks${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         setTasks(res.data);
       } catch (err) {
         console.log(err);
       }
     };
+
     if (token) fetchTasks();
   }, [token, statusFilter]);
 
-  // CREATE / UPDATE TASK
+  // CREATE OR UPDATE TASK
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       let res;
+
       if (editingTask) {
         res = await axios.patch(
           `/api/tasks/${editingTask._id}`,
           { title, description, dueDate, category },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
         setTasks(tasks.map((t) => (t._id === res.data._id ? res.data : t)));
         setEditingTask(null);
       } else {
@@ -51,16 +63,18 @@ export default function Home({ setToken }) {
           { title, description, dueDate, category },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
         setTasks([res.data, ...tasks]);
       }
 
+      // RESET FORM
       setTitle("");
       setDescription("");
       setDueDate("");
-      setCategory("Personal");
+      setCategory([]);
       setError("");
     } catch (err) {
-      setError(err.response?.data.error || "Failed to save task");
+      setError(err.response?.data?.error || "Failed to save task");
     }
   };
 
@@ -70,35 +84,38 @@ export default function Home({ setToken }) {
       await axios.delete(`/api/tasks/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setTasks(tasks.filter((t) => t._id !== id));
     } catch (err) {
       console.log(err);
     }
   };
 
-  // EDIT TASK
+  // EDIT MODE
   const handleEdit = (task) => {
     setEditingTask(task);
     setTitle(task.title);
     setDescription(task.description);
     setDueDate(task.dueDate.slice(0, 10));
-    setCategory(task.category);
+    setCategory(task.category || []); // <-- load array
   };
 
   // TOGGLE STATUS
   const toggleStatus = async (task) => {
-    let newStatus =
+    const newStatus =
       task.status === "Pending"
         ? "In Progress"
         : task.status === "In Progress"
         ? "Completed"
         : "Pending";
+
     try {
       const res = await axios.patch(
         `/api/tasks/${task._id}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setTasks(tasks.map((t) => (t._id === task._id ? res.data : t)));
     } catch (err) {
       console.log(err);
@@ -112,7 +129,7 @@ export default function Home({ setToken }) {
     setToken(null);
   };
 
-  // FILTERED TASKS
+  // FILTER LOGIC
   const filteredTasks = tasks
     .filter(
       (task) =>
@@ -120,7 +137,7 @@ export default function Home({ setToken }) {
         task.description.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .filter((task) =>
-      categoryFilter === "All" ? true : task.category === categoryFilter
+      categoryFilter === "All" ? true : task.category.includes(categoryFilter)
     );
 
   return (
@@ -171,13 +188,17 @@ export default function Home({ setToken }) {
           ))}
         </div>
 
-        {/* TASK FORM */}
+        {/* FORM */}
         <div className="bg-gray-200 p-6 rounded shadow-md mb-6">
           <h2 className="text-xl font-bold mb-4">
             {editingTask ? "Edit Task" : "Add Task"}
           </h2>
+
           {error && <p className="text-red-500 mb-4">{error}</p>}
+
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* TITLE */}
             <input
               type="text"
               placeholder="Title"
@@ -186,12 +207,16 @@ export default function Home({ setToken }) {
               className="w-full p-2 border border-gray-300 rounded"
               required
             />
+
+            {/* DESCRIPTION */}
             <textarea
               placeholder="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
             />
+
+            {/* DATE */}
             <input
               type="date"
               value={dueDate}
@@ -199,15 +224,28 @@ export default function Home({ setToken }) {
               className="w-full p-2 border border-gray-300 rounded"
               required
             />
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded"
-            >
-              <option value="Work">Work</option>
-              <option value="Personal">Personal</option>
-              <option value="Health">Health</option>
-            </select>
+
+            {/* MULTI CATEGORY CHECKBOX */}
+            <div>
+              <p className="font-semibold">Categories:</p>
+
+              {["Work", "Personal", "Health"].map((cat) => (
+                <label key={cat} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={category.includes(cat)}
+                    onChange={() => {
+                      if (category.includes(cat)) {
+                        setCategory(category.filter((c) => c !== cat));
+                      } else {
+                        setCategory([...category, cat]);
+                      }
+                    }}
+                  />
+                  {cat}
+                </label>
+              ))}
+            </div>
 
             <button
               type="submit"
@@ -218,7 +256,7 @@ export default function Home({ setToken }) {
           </form>
         </div>
 
-        {/* SEARCH INPUT */}
+        {/* SEARCH */}
         <input
           type="text"
           placeholder="Search tasks..."
@@ -239,9 +277,11 @@ export default function Home({ setToken }) {
               <div>
                 <h3 className="font-bold text-lg">{task.title}</h3>
                 <p>{task.description}</p>
+
                 <p className="text-gray-500 text-sm">
                   Due: {new Date(task.dueDate).toLocaleDateString()}
                 </p>
+
                 <p className="mt-1">
                   Status:{" "}
                   <span
@@ -256,19 +296,25 @@ export default function Home({ setToken }) {
                     {task.status}
                   </span>
                 </p>
-                      <button
+
+                <button
                   onClick={() => toggleStatus(task)}
                   className="mt-2 px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-900 transition"
                 >
                   Toggle Status
                 </button>
-                <p className="mt-1">
-                  Category:{" "}
-                  <span className="px-2 py-1 rounded bg-purple-800 text-white">
-                    {task.category}
-                  </span>
+
+                {/* MULTIPLE CATEGORY BADGES */}
+                <p className="mt-2 flex gap-2 flex-wrap">
+                  {task.category.map((cat) => (
+                    <span
+                      key={cat}
+                      className="px-2 py-1 rounded bg-purple-800 text-white"
+                    >
+                      {cat}
+                    </span>
+                  ))}
                 </p>
-          
               </div>
 
               <div className="flex gap-2">
@@ -278,6 +324,7 @@ export default function Home({ setToken }) {
                 >
                   Edit
                 </button>
+
                 <button
                   onClick={() => handleDelete(task._id)}
                   className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
