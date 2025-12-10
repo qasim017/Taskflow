@@ -269,71 +269,99 @@ export default function Home({ setToken }) {
         <div className="space-y-4">
           {filteredTasks.length === 0 && <p>No tasks found.</p>}
 
-          {filteredTasks.map((task) => (
-            <div
-              key={task._id}
-              className="bg-gray-200 p-4 rounded shadow flex justify-between items-center"
-            >
-              <div>
-                <h3 className="font-bold text-lg">{task.title}</h3>
-                <p>{task.description}</p>
+          {filteredTasks.map((task) => {
+            const isOverdue =
+              new Date(task.dueDate) < new Date() &&
+              task.status !== "Completed";
 
-                <p className="text-gray-500 text-sm">
-                  Due: {new Date(task.dueDate).toLocaleDateString()}
-                </p>
-
-                <p className="mt-1">
-                  Status:{" "}
-                  <span
-                    className={`px-2 py-1 rounded text-white ${
-                      task.status === "Completed"
-                        ? "bg-green-600"
-                        : task.status === "In Progress"
-                        ? "bg-blue-500"
-                        : "bg-yellow-500"
+            return (
+              <div
+                key={task._id}
+                className={`p-4 rounded shadow flex justify-between items-center border 
+                  ${
+                    isOverdue
+                      ? "border-red-700 bg-red-100"
+                      : "bg-gray-200 border-gray-300"
+                  }
+                `}
+              >
+                <div>
+                  <h3
+                    className={`font-bold text-lg ${
+                      isOverdue ? "text-red-700" : "text-black"
                     }`}
                   >
-                    {task.status}
-                  </span>
-                </p>
+                    {task.title}
+                  </h3>
 
-                <button
-                  onClick={() => toggleStatus(task)}
-                  className="mt-2 px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-900 transition"
-                >
-                  Toggle Status
-                </button>
+                  <p className={`${isOverdue ? "text-red-600" : ""}`}>
+                    {task.description}
+                  </p>
 
-                {/* MULTIPLE CATEGORY BADGES */}
-                <p className="mt-2 flex gap-2 flex-wrap">
-                  {task.category.map((cat) => (
+                  <p
+                    className={`text-sm ${
+                      isOverdue ? "text-red-700 font-bold" : "text-gray-600"
+                    }`}
+                  >
+                    Due: {new Date(task.dueDate).toLocaleDateString()}
+                  </p>
+
+                  <p className="mt-1">
+                    Status:{" "}
                     <span
-                      key={cat}
-                      className="px-2 py-1 rounded bg-purple-800 text-white"
+                      className={`px-2 py-1 rounded text-white 
+                        ${
+                          task.status === "Completed"
+                            ? "bg-green-600"
+                            : isOverdue
+                            ? "bg-red-700"
+                            : task.status === "In Progress"
+                            ? "bg-blue-500"
+                            : "bg-yellow-500"
+                        }
+                      `}
                     >
-                      {cat}
+                      {task.status}
                     </span>
-                  ))}
-                </p>
-              </div>
+                  </p>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(task)}
-                  className="bg-yellow-700 text-white px-3 py-1 rounded hover:bg-yellow-500 transition"
-                >
-                  Edit
-                </button>
+                  <button
+                    onClick={() => toggleStatus(task)}
+                    className="mt-2 px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-900 transition"
+                  >
+                    Toggle Status
+                  </button>
 
-                <button
-                  onClick={() => handleDelete(task._id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                >
-                  Delete
-                </button>
+                  <p className="mt-2 flex gap-2 flex-wrap">
+                    {task.category.map((cat) => (
+                      <span
+                        key={cat}
+                        className="px-2 py-1 rounded bg-purple-800 text-white"
+                      >
+                        {cat}
+                      </span>
+                    ))}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(task)}
+                    className="bg-yellow-700 text-white px-3 py-1 rounded hover:bg-yellow-500 transition"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(task._id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
